@@ -144,7 +144,44 @@ class SimilarityEngine(BaseSimilarity):
         return self.rank_similar_items(artist, "artist", method)
 
     def top_5_similar_tracks(self, track_id, method):
-        return self.rank_similar_items(track_id, "track", method)
+        target_features = self.get_track_features(track_id)
+
+        if target_features is None:
+            raise ValueError("Track not found")
+
+        target_list = self.features_to_list(target_features)
+
+        results = []
+        count = 0
+        MAX_COMPARISONS = 300   # SAFE LIMIT (prevents freezing)
+
+        for artist in self.artist_music:
+            for other_track_id, track in self.artist_music[artist].items():
+                if other_track_id == track_id:
+                    continue
+
+                other_list = self.features_to_list(track["features"])
+
+                if method == "euclidean":
+                    score = self.euclidean_similarity(target_list, other_list)
+                elif method == "cosine":
+                    score = self.cosine_similarity(target_list, other_list)
+                elif method == "pearson":
+                    score = self.pearson_similarity(target_list, other_list)
+                else:
+                    raise ValueError("Invalid similarity method")
+
+                results.append((other_track_id, score))
+                count += 1
+
+                if count >= MAX_COMPARISONS:
+                    break
+            if count >= MAX_COMPARISONS:
+                break
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        return results[:5]
+
 
     def recommend_tracks(self, track_id, method):
         return self.top_5_similar_tracks(track_id, method)
