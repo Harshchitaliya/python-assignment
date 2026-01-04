@@ -1,152 +1,123 @@
-"""
-Similarity Module
-Computes similarity between tracks and artists
-using different distance / similarity measures.
-"""
-
 import math
-import random
 
 
-class SimilarityCalculator:
+class SimilarityEngine:
 
     def __init__(self, artist_music):
-        """
-        artist_music: dictionary created by DatasetLoader
-        """
         self.artist_music = artist_music
 
-    # --------------------------------------------------
-    # Helper methods
-    # --------------------------------------------------
-
-    def _get_track_features(self, track_id):
-        """
-        Return feature vector for a given track_id
-        """
+    def get_track_features(self, track_id):
         for artist in self.artist_music:
-            if track_id in self.artist_music[artist]:
-                return list(self.artist_music[artist][track_id]['features'].values())
+            tracks = self.artist_music[artist]
+            if track_id in tracks:
+                return tracks[track_id]["features"]
         return None
 
-    def _get_artist_average_features(self, artist_name):
-        """
-        Compute average feature vector for an artist
-        """
-        if artist_name not in self.artist_music:
-            return None
+    def features_to_list(self, features):
+        values = []
+        for key in features:
+            values.append(features[key])
+        return values
 
-        feature_lists = []
+    def euclidean_similarity(self, list1, list2):
+        total = 0
+        for i in range(len(list1)):
+            total += (list1[i] - list2[i]) ** 2
+        return math.sqrt(total)
 
-        for track in self.artist_music[artist_name].values():
-            feature_lists.append(list(track['features'].values()))
+    def cosine_similarity(self, list1, list2):
+        dot_product = 0
+        mag1 = 0
+        mag2 = 0
 
-        # Average each feature
-        avg_features = []
-        for i in range(len(feature_lists[0])):
-            avg = sum(f[i] for f in feature_lists) / len(feature_lists)
-            avg_features.append(avg)
+        for i in range(len(list1)):
+            dot_product += list1[i] * list2[i]
+            mag1 += list1[i] ** 2
+            mag2 += list2[i] ** 2
 
-        return avg_features
-
-    # --------------------------------------------------
-    # Similarity metrics
-    # --------------------------------------------------
-
-    def euclidean_similarity(self, v1, v2):
-        distance = math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
-        return 1 / (1 + distance)
-
-    def manhattan_similarity(self, v1, v2):
-        distance = sum(abs(a - b) for a, b in zip(v1, v2))
-        return 1 / (1 + distance)
-
-    def cosine_similarity(self, v1, v2):
-        dot_product = sum(a * b for a, b in zip(v1, v2))
-        norm_v1 = math.sqrt(sum(a ** 2 for a in v1))
-        norm_v2 = math.sqrt(sum(b ** 2 for b in v2))
-
-        if norm_v1 == 0 or norm_v2 == 0:
+        if mag1 == 0 or mag2 == 0:
             return 0
 
-        return dot_product / (norm_v1 * norm_v2)
+        return dot_product / (math.sqrt(mag1) * math.sqrt(mag2))
 
-    def pearson_similarity(self, v1, v2):
-        mean1 = sum(v1) / len(v1)
-        mean2 = sum(v2) / len(v2)
+    def pearson_similarity(self, list1, list2):
+        mean1 = sum(list1) / len(list1)
+        mean2 = sum(list2) / len(list2)
 
-        num = sum((a - mean1) * (b - mean2) for a, b in zip(v1, v2))
-        den1 = math.sqrt(sum((a - mean1) ** 2 for a in v1))
-        den2 = math.sqrt(sum((b - mean2) ** 2 for b in v2))
+        top = 0
+        bottom1 = 0
+        bottom2 = 0
 
-        if den1 == 0 or den2 == 0:
+        for i in range(len(list1)):
+            top += (list1[i] - mean1) * (list2[i] - mean2)
+            bottom1 += (list1[i] - mean1) ** 2
+            bottom2 += (list2[i] - mean2) ** 2
+
+        if bottom1 == 0 or bottom2 == 0:
             return 0
 
-        return num / (den1 * den2)
+        return top / (math.sqrt(bottom1) * math.sqrt(bottom2))
 
-    # --------------------------------------------------
-    # Track similarity
-    # --------------------------------------------------
+    def track_similarity(self, track1_id, track2_id, method):
+        f1 = self.get_track_features(track1_id)
+        f2 = self.get_track_features(track2_id)
 
-    def track_similarity(self, track_id_1, track_id_2, similarity_function):
-        v1 = self._get_track_features(track_id_1)
-        v2 = self._get_track_features(track_id_2)
+        if f1 is None or f2 is None:
+            raise ValueError("Track ID not found")
 
-        if v1 is None or v2 is None:
-            return None
+        list1 = self.features_to_list(f1)
+        list2 = self.features_to_list(f2)
 
-        return similarity_function(v1, v2)
+        if method == "euclidean":
+            return self.euclidean_similarity(list1, list2)
+        if method == "manhattan":
+            return self.manhattan_similarity(list1, list2)
+        if method == "cosine":
+            return self.cosine_similarity(list1, list2)
+        if method == "pearson":
+            return self.pearson_similarity(list1, list2)
 
-    # --------------------------------------------------
-    # Artist similarity
-    # --------------------------------------------------
+        raise ValueError("Invalid similarity method")
 
-    def artist_similarity(self, artist_1, artist_2, similarity_function):
-        v1 = self._get_artist_average_features(artist_1)
-        v2 = self._get_artist_average_features(artist_2)
+    def artist_similarity(self, artist1, artist2, method):
 
-        if v1 is None or v2 is None:
-            return None
+        def average_features(artist):
+            tracks = self.artist_music.get(artist, {})
+            total = None
+            count = 0
 
-        return similarity_function(v1, v2)
+            for track in tracks.values():
+                features = self.features_to_list(track["features"])
+                if total is None:
+                    total = features
+                else:
+                    for i in range(len(total)):
+                        total[i] += features[i]
+                count += 1
 
-    # --------------------------------------------------
-    # Ranking similar artists (TOP 5)
-    # --------------------------------------------------
+            return [value / count for value in total]
 
-    def top_5_similar_artists(self, artist_name, similarity_function, threshold=0.8):
+        avg1 = average_features(artist1)
+        avg2 = average_features(artist2)
+
+        if method == "euclidean":
+            return self.euclidean_similarity(avg1, avg2)
+        if method == "manhattan":
+            return self.manhattan_similarity(avg1, avg2)
+        if method == "cosine":
+            return self.cosine_similarity(avg1, avg2)
+        if method == "pearson":
+            return self.pearson_similarity(avg1, avg2)
+
+        raise ValueError("Invalid similarity method")
+
+    def top_5_similar_artists(self, artist, method):
         results = []
 
         for other_artist in self.artist_music:
-            if other_artist == artist_name:
-                continue
-
-            score = self.artist_similarity(artist_name, other_artist, similarity_function)
-
-            if score is not None and score >= threshold:
+            if other_artist != artist:
+                score = self.artist_similarity(artist, other_artist, method)
                 results.append((other_artist, score))
 
-        # Sort by similarity score (descending)
         results.sort(key=lambda x: x[1], reverse=True)
-
         return results[:5]
-
-    # --------------------------------------------------
-    # Recommendations (Spotify-style)
-    # --------------------------------------------------
-
-    def recommend_artists(self, artist_name, similarity_function, n=10):
-        similar_artists = self.top_5_similar_artists(
-            artist_name, similarity_function, threshold=0
-        )
-
-        if not similar_artists:
-            return []
-
-        # Random selection (OOP idea mentioned by lecturer)
-        recommendations = random.sample(
-            similar_artists,
-            min(len(similar_artists), n)
-        )
-
-        return recommendations
