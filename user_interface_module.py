@@ -160,14 +160,18 @@ class MusicApp:
         self.artist_list = sorted(self.artist_music.keys())
 
         self.track_name_to_id = {}
+        self.track_id_to_name = {}
         self.track_names = []
 
         for artist in self.artist_music:
             for track_id, track in self.artist_music[artist].items():
-                self.track_name_to_id[track["name"]] = track_id
-                self.track_names.append(track["name"])
+                name = track["name"]
+                self.track_name_to_id[name] = track_id
+                self.track_id_to_name[track_id] = name
+                self.track_names.append(name)
 
         self.track_names = sorted(list(set(self.track_names)))
+
 
     def update_dropdowns(self):
         if self.item_type.get() == "artist":
@@ -235,8 +239,10 @@ class MusicApp:
                 else:
                     track_id = self.track_name_to_id[v1]
                     self.output.insert(tk.END, "Top 5 similar tracks:\n")
-                    for t, s in self.engine.recommend_tracks(track_id, method):
-                        self.output.insert(tk.END, f"{t} -> {s}\n")
+                    for track_id, score in self.engine.recommend_tracks(track_id, method):
+                        track_name = self.track_id_to_name.get(track_id, track_id)
+                        self.output.insert(tk.END, f"{track_name} -> {score}\n")
+
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
