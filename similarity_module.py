@@ -1,7 +1,23 @@
 import math
 
 
-class SimilarityEngine:
+class BaseSimilarity:
+    """
+    Base class that contains shared helper functionality.
+    """
+
+    def features_to_list(self, features):
+        values = []
+        for key in features:
+            values.append(features[key])
+        return values
+
+
+class SimilarityEngine(BaseSimilarity):
+    """
+    Computes similarity between tracks and artists.
+    Inherits common feature handling from BaseSimilarity.
+    """
 
     def __init__(self, artist_music):
         self.artist_music = artist_music
@@ -12,12 +28,6 @@ class SimilarityEngine:
             if track_id in tracks:
                 return tracks[track_id]["features"]
         return None
-
-    def features_to_list(self, features):
-        values = []
-        for key in features:
-            values.append(features[key])
-        return values
 
     def euclidean_similarity(self, list1, list2):
         total = 0
@@ -70,8 +80,6 @@ class SimilarityEngine:
 
         if method == "euclidean":
             return self.euclidean_similarity(list1, list2)
-        if method == "manhattan":
-            return self.manhattan_similarity(list1, list2)
         if method == "cosine":
             return self.cosine_similarity(list1, list2)
         if method == "pearson":
@@ -95,6 +103,9 @@ class SimilarityEngine:
                         total[i] += features[i]
                 count += 1
 
+            if count == 0:
+                raise ValueError("Artist not found")
+
             return [value / count for value in total]
 
         avg1 = average_features(artist1)
@@ -102,8 +113,6 @@ class SimilarityEngine:
 
         if method == "euclidean":
             return self.euclidean_similarity(avg1, avg2)
-        if method == "manhattan":
-            return self.manhattan_similarity(avg1, avg2)
         if method == "cosine":
             return self.cosine_similarity(avg1, avg2)
         if method == "pearson":
