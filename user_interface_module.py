@@ -3,246 +3,83 @@ from tkinter import messagebox, ttk
 from similarity_module import SimilarityEngine
 
 
-# Material Design 3 Dark Theme Colors
-BG_COLOR = "#1C1B1F"           # Surface
-BG_SECONDARY = "#2B2930"       # Surface Container
-FG_COLOR = "#E6E1E5"           # On Surface
-FG_SECONDARY = "#CAC4D0"       # On Surface Variant
-ENTRY_BG = "#2B2930"           # Surface Container High
-ENTRY_BORDER = "#938F99"       # Outline
-BTN_PRIMARY = "#D0BCFF"        # Primary
-BTN_PRIMARY_FG = "#381E72"     # On Primary
-BTN_SECONDARY = "#4A4458"      # Secondary Container
-BTN_SECONDARY_FG = "#E8DEF8"   # On Secondary Container
-TEXT_BG = "#2B2930"            # Surface Container
-TEXT_FG = "#E6E1E5"            # On Surface
-ACCENT = "#D0BCFF"             # Primary
-ERROR_COLOR = "#F2B8B5"        # Error
+BG_COLOR = "#1C1B1F"
+BG_SECONDARY = "#2B2930"
+FG_COLOR = "#E6E1E5"
+FG_SECONDARY = "#CAC4D0"
+ENTRY_BG = "#2B2930"
+ENTRY_BORDER = "#938F99"
+BTN_PRIMARY = "#D0BCFF"
+BTN_PRIMARY_FG = "#381E72"
+BTN_SECONDARY = "#4A4458"
+BTN_SECONDARY_FG = "#E8DEF8"
+TEXT_BG = "#2B2930"
+TEXT_FG = "#E6E1E5"
+ACCENT = "#D0BCFF"
 
 
 class MusicApp:
 
     def __init__(self, artist_music):
-
         self.artist_music = artist_music
         self.engine = SimilarityEngine(artist_music)
 
         self.window = tk.Tk()
         self.window.title("Music Recommendation System")
-        self.window.geometry("700x750")
+        self.window.geometry("720x780")
         self.window.configure(bg=BG_COLOR)
-        
-        # Configure ttk style for Material Design
+
         style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Configure progress bar style
-        style.configure("Material.Horizontal.TProgressbar",
-                       troughcolor=BG_SECONDARY,
-                       bordercolor=BG_COLOR,
-                       background=ACCENT,
-                       lightcolor=ACCENT,
-                       darkcolor=ACCENT,
-                       thickness=8)
-        
-        # Main container with padding
-        main_frame = tk.Frame(self.window, bg=BG_COLOR)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=24, pady=20)
-        
-        # Title
-        title_label = tk.Label(
-            main_frame,
+        style.theme_use("clam")
+        style.configure(
+            "Material.Horizontal.TProgressbar",
+            troughcolor=BG_SECONDARY,
+            background=ACCENT,
+            thickness=8
+        )
+
+        main = tk.Frame(self.window, bg=BG_COLOR)
+        main.pack(fill=tk.BOTH, expand=True, padx=24, pady=20)
+
+        tk.Label(
+            main,
             text="🎵 Music Recommendation System",
             bg=BG_COLOR,
             fg=ACCENT,
             font=("Segoe UI", 18, "bold")
+        ).pack(pady=(0, 20))
+
+        self.method_entry = self._entry_block(
+            main,
+            "Similarity method (euclidean / cosine / pearson)",
+            "euclidean"
         )
-        title_label.pack(pady=(0, 24))
-        
-        # Method selection card
-        method_card = tk.Frame(main_frame, bg=BG_SECONDARY)
-        method_card.pack(fill=tk.X, pady=(0, 16))
-        
-        method_inner = tk.Frame(method_card, bg=BG_SECONDARY)
-        method_inner.pack(padx=16, pady=12)
-        
-        tk.Label(
-            method_inner,
-            text="Similarity Method",
-            bg=BG_SECONDARY,
-            fg=FG_COLOR,
-            font=("Segoe UI", 11, "bold")
-        ).pack(anchor="w", pady=(0, 8))
-        
-        self.method_entry = tk.Entry(
-            method_inner,
-            bg=ENTRY_BG,
-            fg=FG_COLOR,
-            insertbackground=ACCENT,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10),
-            width=40,
-            highlightthickness=2,
-            highlightbackground=ENTRY_BORDER,
-            highlightcolor=ACCENT
+
+        self.input1 = self._entry_block(main, "First input")
+        self.input2 = self._entry_block(main, "Second input")
+
+        btn_frame = tk.Frame(main, bg=BG_COLOR)
+        btn_frame.pack(pady=10)
+
+        self._button(btn_frame, "Compare Track IDs", self.compare_tracks, BTN_PRIMARY, BTN_PRIMARY_FG)
+        self._button(btn_frame, "Compare Artists", self.compare_artists, BTN_SECONDARY, BTN_SECONDARY_FG)
+        self._button(btn_frame, "Compare Track Names", self.compare_track_names, BTN_SECONDARY, BTN_SECONDARY_FG)
+        self._button(
+            btn_frame,
+            "Top 5 Recommendations",
+            self.get_recommendations,
+            BTN_PRIMARY,
+            BTN_PRIMARY_FG
         )
-        self.method_entry.pack(fill=tk.X, ipady=8)
-        self.method_entry.insert(0, "euclidean")
-        
-        tk.Label(
-            method_inner,
-            text="Options: euclidean, cosine, pearson",
-            bg=BG_SECONDARY,
-            fg=FG_SECONDARY,
-            font=("Segoe UI", 9)
-        ).pack(anchor="w", pady=(4, 0))
-        
-        # Mode selection card
-        mode_card = tk.Frame(main_frame, bg=BG_SECONDARY)
-        mode_card.pack(fill=tk.X, pady=(0, 16))
-        
-        mode_inner = tk.Frame(mode_card, bg=BG_SECONDARY)
-        mode_inner.pack(padx=16, pady=12)
-        
-        tk.Label(
-            mode_inner,
-            text="Comparison Mode",
-            bg=BG_SECONDARY,
-            fg=FG_COLOR,
-            font=("Segoe UI", 11, "bold")
-        ).pack(anchor="w", pady=(0, 8))
-        
-        self.mode = tk.StringVar()
-        self.mode.set("track")
-        
-        radio_frame = tk.Frame(mode_inner, bg=BG_SECONDARY)
-        radio_frame.pack(fill=tk.X)
-        
-        for text, value in [("Track IDs", "track"), ("Artists", "artist"), ("Track Names", "name")]:
-            tk.Radiobutton(
-                radio_frame,
-                text=text,
-                variable=self.mode,
-                value=value,
-                bg=BG_SECONDARY,
-                fg=FG_COLOR,
-                selectcolor=BG_SECONDARY,
-                activebackground=BG_SECONDARY,
-                activeforeground=ACCENT,
-                font=("Segoe UI", 10),
-                highlightthickness=0,
-                bd=0
-            ).pack(anchor="w", pady=2)
-        
-        # Input fields card
-        input_card = tk.Frame(main_frame, bg=BG_SECONDARY)
-        input_card.pack(fill=tk.X, pady=(0, 16))
-        
-        input_inner = tk.Frame(input_card, bg=BG_SECONDARY)
-        input_inner.pack(padx=16, pady=12)
-        
-        # First input
-        tk.Label(
-            input_inner,
-            text="First Input",
-            bg=BG_SECONDARY,
-            fg=FG_COLOR,
-            font=("Segoe UI", 10, "bold")
-        ).pack(anchor="w", pady=(0, 4))
-        
-        self.input1 = tk.Entry(
-            input_inner,
-            bg=ENTRY_BG,
-            fg=FG_COLOR,
-            insertbackground=ACCENT,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10),
-            highlightthickness=2,
-            highlightbackground=ENTRY_BORDER,
-            highlightcolor=ACCENT
-        )
-        self.input1.pack(fill=tk.X, ipady=8, pady=(0, 12))
-        
-        # Second input
-        tk.Label(
-            input_inner,
-            text="Second Input",
-            bg=BG_SECONDARY,
-            fg=FG_COLOR,
-            font=("Segoe UI", 10, "bold")
-        ).pack(anchor="w", pady=(0, 4))
-        
-        self.input2 = tk.Entry(
-            input_inner,
-            bg=ENTRY_BG,
-            fg=FG_COLOR,
-            insertbackground=ACCENT,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10),
-            highlightthickness=2,
-            highlightbackground=ENTRY_BORDER,
-            highlightcolor=ACCENT
-        )
-        self.input2.pack(fill=tk.X, ipady=8)
-        
-        # Buttons
-        button_frame = tk.Frame(main_frame, bg=BG_COLOR)
-        button_frame.pack(pady=(0, 16))
-        
-        compare_btn = tk.Button(
-            button_frame,
-            text="Compare",
-            command=self.compare,
-            bg=BTN_PRIMARY,
-            fg=BTN_PRIMARY_FG,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10, "bold"),
-            padx=32,
-            pady=10,
-            cursor="hand2",
-            activebackground=ACCENT,
-            activeforeground=BTN_PRIMARY_FG
-        )
-        compare_btn.pack(side=tk.LEFT, padx=(0, 8))
-        
-        quit_btn = tk.Button(
-            button_frame,
-            text="Quit",
-            command=self.window.quit,
-            bg=BTN_SECONDARY,
-            fg=BTN_SECONDARY_FG,
-            relief=tk.FLAT,
-            font=("Segoe UI", 10),
-            padx=32,
-            pady=10,
-            cursor="hand2",
-            activebackground=BG_SECONDARY,
-            activeforeground=BTN_SECONDARY_FG
-        )
-        quit_btn.pack(side=tk.LEFT)
-        
-        # Output text area
-        output_frame = tk.Frame(main_frame, bg=BG_SECONDARY)
-        output_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 12))
-        
-        output_inner = tk.Frame(output_frame, bg=BG_SECONDARY)
-        output_inner.pack(padx=16, pady=12, fill=tk.BOTH, expand=True)
-        
-        tk.Label(
-            output_inner,
-            text="Results",
-            bg=BG_SECONDARY,
-            fg=FG_COLOR,
-            font=("Segoe UI", 11, "bold")
-        ).pack(anchor="w", pady=(0, 8))
-        
+        self._button(btn_frame, "Quit", self.window.quit, BG_SECONDARY, FG_COLOR)
+
         self.output = tk.Text(
-            output_inner,
-            height=15,
+            main,
+            height=16,
             bg=TEXT_BG,
             fg=TEXT_FG,
-            relief=tk.FLAT,
             font=("Consolas", 10),
+            relief=tk.FLAT,
             padx=12,
             pady=12,
             wrap=tk.WORD,
@@ -250,17 +87,62 @@ class MusicApp:
             highlightbackground=ENTRY_BORDER,
             highlightcolor=ACCENT
         )
-        self.output.pack(fill=tk.BOTH, expand=True)
-        
-        # Progress bar
+        self.output.pack(fill=tk.BOTH, expand=True, pady=(10, 6))
+
         self.progress = ttk.Progressbar(
-            main_frame,
+            main,
             orient="horizontal",
-            length=450,
             mode="determinate",
             style="Material.Horizontal.TProgressbar"
         )
-        self.progress.pack(fill=tk.X, pady=(0, 4))
+        self.progress.pack(fill=tk.X)
+
+    def _entry_block(self, parent, label, default=None):
+        frame = tk.Frame(parent, bg=BG_SECONDARY)
+        frame.pack(fill=tk.X, pady=(0, 14))
+
+        inner = tk.Frame(frame, bg=BG_SECONDARY)
+        inner.pack(padx=16, pady=12, fill=tk.X)
+
+        tk.Label(
+            inner,
+            text=label,
+            bg=BG_SECONDARY,
+            fg=FG_COLOR,
+            font=("Segoe UI", 10, "bold")
+        ).pack(anchor="w", pady=(0, 4))
+
+        entry = tk.Entry(
+            inner,
+            bg=ENTRY_BG,
+            fg=FG_COLOR,
+            insertbackground=ACCENT,
+            relief=tk.FLAT,
+            font=("Segoe UI", 10),
+            highlightthickness=2,
+            highlightbackground=ENTRY_BORDER,
+            highlightcolor=ACCENT
+        )
+        entry.pack(fill=tk.X, ipady=8)
+
+        if default:
+            entry.insert(0, default)
+
+        return entry
+
+    def _button(self, parent, text, cmd, bg, fg):
+        tk.Button(
+            parent,
+            text=text,
+            command=cmd,
+            bg=bg,
+            fg=fg,
+            relief=tk.FLAT,
+            font=("Segoe UI", 10, "bold"),
+            padx=16,
+            pady=10,
+            cursor="hand2"
+        ).pack(side=tk.LEFT, padx=6)
 
     def find_track_id_by_name(self, name):
         for artist in self.artist_music:
@@ -275,70 +157,94 @@ class MusicApp:
             for track_id in self.artist_music[artist]:
                 ids.append(track_id)
         return ids
-
-    def compare(self):
-        method = self.method_entry.get().lower()
-        first = self.input1.get()
-        second = self.input2.get()
-
-        self.output.delete("1.0", tk.END)
-        self.progress["value"] = 0
-
+    
+    def get_recommendations(self):
+        self._reset()
         try:
-            if self.mode.get() == "track":
-                score = self.engine.track_similarity(first, second, method)
-                self.output.insert(tk.END, "Track similarity score:\n")
-                self.output.insert(tk.END, str(score) + "\n\n")
+            method = self.method_entry.get().lower()
+            value = self.input1.get()
 
-                self.output.insert(tk.END, "Finding top 5 similar tracks...\n")
+            if not value:
+                raise ValueError("Please enter a track ID or artist name")
 
-                track_ids = self.get_all_track_ids()
-                self.progress["maximum"] = len(track_ids)
+            if value in self.artist_music:
+                self.output.insert(tk.END, "Top 5 similar artists:\n")
+                results = self.engine.recommend_artists(value, method)
 
-                results = []
-
-                for i, track_id in enumerate(track_ids):
-                    if track_id != first:
-                        value = self.engine.track_similarity(first, track_id, method)
-                        results.append((track_id, value))
-
-                    self.progress["value"] = i + 1
-                    self.window.update_idletasks()
-
-                results.sort(key=lambda x: x[1], reverse=True)
-
-                self.output.insert(tk.END, "\nTop 5 similar tracks:\n")
-                for t, v in results[:5]:
-                    self.output.insert(tk.END, t + " -> " + str(v) + "\n")
-
-            elif self.mode.get() == "artist":
-                score = self.engine.artist_similarity(first, second, method)
-                self.output.insert(tk.END, "Artist similarity score:\n")
-                self.output.insert(tk.END, str(score) + "\n\n")
-
-                self.output.insert(
-                    tk.END,
-                    "Top 5 similar artists to " + first + ":\n"
-                )
-
-                top = self.engine.top_5_similar_artists(first, method)
-
-                for artist, value in top:
-                    self.output.insert(tk.END, artist + " -> " + str(value) + "\n")
+                for artist, score in results:
+                    self.output.insert(tk.END, artist + " -> " + str(score) + "\n")
 
             else:
-                id1 = self.find_track_id_by_name(first)
-                id2 = self.find_track_id_by_name(second)
+                self.output.insert(tk.END, "Top 5 similar tracks:\n")
+                results = self.engine.recommend_tracks(value, method)
 
-                if id1 is None or id2 is None:
-                    raise ValueError("Track name not found")
-
-                score = self.engine.track_similarity(id1, id2, method)
-                self.output.insert(tk.END, "Track name similarity score:\n")
-                self.output.insert(tk.END, str(score) + "\n")
+                for track, score in results:
+                    self.output.insert(tk.END, track + " -> " + str(score) + "\n")
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+
+    def compare_tracks(self):
+        self._reset()
+        try:
+            method = self.method_entry.get().lower()
+            track_id = self.input1.get()
+            track_id_2 = self.input2.get()
+
+            score = self.engine.track_similarity(track_id, track_id_2, method)
+            self.output.insert(tk.END, "Track similarity score:\n")
+            self.output.insert(tk.END, str(score) + "\n\n")
+
+            self.output.insert(tk.END, "Top 5 similar tracks:\n")
+            results = self.engine.top_5_similar_tracks(track_id, method)
+
+            for t, v in results:
+                self.output.insert(tk.END, t + " -> " + str(v) + "\n")
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+
+    def compare_artists(self):
+        self._reset()
+        try:
+            method = self.method_entry.get().lower()
+            a1 = self.input1.get()
+            a2 = self.input2.get()
+
+            score = self.engine.artist_similarity(a1, a2, method)
+            self.output.insert(tk.END, f"Artist similarity score:\n{score}\n\n")
+
+            self.output.insert(tk.END, f"Top 5 similar artists to {a1}:\n")
+            for artist, val in self.engine.top_5_similar_artists(a1, method):
+                self.output.insert(tk.END, f"{artist} -> {val}\n")
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def compare_track_names(self):
+        self._reset()
+        try:
+            method = self.method_entry.get().lower()
+            n1 = self.input1.get()
+            n2 = self.input2.get()
+
+            id1 = self.find_track_id_by_name(n1)
+            id2 = self.find_track_id_by_name(n2)
+
+            if not id1 or not id2:
+                raise ValueError("Track name not found")
+
+            score = self.engine.track_similarity(id1, id2, method)
+            self.output.insert(tk.END, f"Track name similarity score:\n{score}")
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def _reset(self):
+        self.output.delete("1.0", tk.END)
+        self.progress["value"] = 0
 
     def run(self):
         self.window.mainloop()

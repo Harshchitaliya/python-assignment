@@ -2,10 +2,6 @@ import math
 
 
 class BaseSimilarity:
-    """
-    Base class that contains shared helper functionality.
-    """
-
     def features_to_list(self, features):
         values = []
         for key in features:
@@ -14,10 +10,6 @@ class BaseSimilarity:
 
 
 class SimilarityEngine(BaseSimilarity):
-    """
-    Computes similarity between tracks and artists.
-    Inherits common feature handling from BaseSimilarity.
-    """
 
     def __init__(self, artist_music):
         self.artist_music = artist_music
@@ -130,3 +122,24 @@ class SimilarityEngine(BaseSimilarity):
 
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:5]
+
+    def top_5_similar_tracks(self, track_id, method):
+        results = []
+
+        for artist in self.artist_music:
+            for other_track_id in self.artist_music[artist]:
+                if other_track_id != track_id:
+                    try:
+                        score = self.track_similarity(track_id, other_track_id, method)
+                        results.append((other_track_id, score))
+                    except:
+                        pass
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        return results[:5]
+
+    def recommend_tracks(self, track_id, method):
+        return self.top_5_similar_tracks(track_id, method)
+
+    def recommend_artists(self, artist, method):
+        return self.top_5_similar_artists(artist, method)
