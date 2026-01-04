@@ -112,31 +112,39 @@ class SimilarityEngine(BaseSimilarity):
 
         raise ValueError("Invalid similarity method")
 
-    def top_5_similar_artists(self, artist, method):
+    # --------------------------------------------------
+    # Generic ranking method (SAME METHOD for both tasks)
+    # --------------------------------------------------
+    def rank_similar_items(self, item, item_type, method):
         results = []
 
-        for other_artist in self.artist_music:
-            if other_artist != artist:
-                score = self.artist_similarity(artist, other_artist, method)
-                results.append((other_artist, score))
+        if item_type == "artist":
+            for other_artist in self.artist_music:
+                if other_artist != item:
+                    score = self.artist_similarity(item, other_artist, method)
+                    results.append((other_artist, score))
+
+        elif item_type == "track":
+            for artist in self.artist_music:
+                for track_id in self.artist_music[artist]:
+                    if track_id != item:
+                        score = self.track_similarity(item, track_id, method)
+                        results.append((track_id, score))
+
+        else:
+            raise ValueError("Invalid item type")
 
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:5]
+
+    # --------------------
+    # Wrapper methods
+    # --------------------
+    def top_5_similar_artists(self, artist, method):
+        return self.rank_similar_items(artist, "artist", method)
 
     def top_5_similar_tracks(self, track_id, method):
-        results = []
-
-        for artist in self.artist_music:
-            for other_track_id in self.artist_music[artist]:
-                if other_track_id != track_id:
-                    try:
-                        score = self.track_similarity(track_id, other_track_id, method)
-                        results.append((other_track_id, score))
-                    except:
-                        pass
-
-        results.sort(key=lambda x: x[1], reverse=True)
-        return results[:5]
+        return self.rank_similar_items(track_id, "track", method)
 
     def recommend_tracks(self, track_id, method):
         return self.top_5_similar_tracks(track_id, method)
